@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Export — Muungano Family CBO</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&family=Playfair+Display:wght@700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<div id="toasts"></div>
+<div class="loader" id="loader"><div class="loader-spin"></div><span style="font-size:11px;color:var(--muted)">Preparing export...</span></div>
+
+<div id="appWrap">
+  <div id="chrome"></div>
+  <div id="main">
+    <div class="page show" id="pg-export">
+      <div id="pgHead"></div>
+      <div class="card" style="text-align:center;padding:24px 14px">
+        <div style="width:52px;height:52px;border-radius:14px;display:flex;align-items:center;justify-content:center;margin:0 auto 10px;background:var(--grad);color:#fff;font-size:20px"><i class="fas fa-file-export"></i></div>
+        <h2 class="fd" style="font-size:17px;margin-bottom:10px">Export Data</h2>
+        <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
+          <button class="btn btn-p" onclick="expCSV()"><i class="fas fa-file-csv"></i> CSV</button>
+          <button class="btn btn-s" onclick="expJSON()"><i class="fas fa-file-code"></i> JSON</button>
+        </div>
+        <div style="margin-top:14px;padding:10px;border-radius:10px;background:var(--pk-lll);text-align:left;font-size:10px;color:var(--muted)">
+          <p style="font-weight:600;color:var(--text);margin-bottom:3px"><i class="fas fa-info-circle" style="color:var(--pk);margin-right:3px"></i>Import to Google Sheets:</p>
+          <ol style="padding-left:14px"><li>Export CSV</li><li>Google Sheets → File → Import</li><li>Upload, select "Replace sheet"</li></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="assets/app.js"></script>
+<script>
+if(initPage('export')){
+  document.getElementById('pgHead').innerHTML=pageHead('fa-file-export','Export','Download employee data for backup or import');
+}
+function csvCell(v){v=v==null?'':String(v);return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v;}
+function dateStr(){var d=new Date();return d.getFullYear()+String(d.getMonth()+1).padStart(2,'0')+String(d.getDate()).padStart(2,'0');}
+function dl(content,name,type){var b=new Blob([content],{type:type});var a=document.createElement('a');
+  a.href=URL.createObjectURL(b);a.download=name;a.click();URL.revokeObjectURL(a.href);}
+function expCSV(){
+  showL(true);
+  loadEmps().then(function(emps){
+    showL(false);
+    if(!emps.length){toast('No data to export','warn');return;}
+    var keys=Object.keys(emps[0]);
+    var csv=[keys.join(',')].concat(emps.map(function(r){return keys.map(function(k){return csvCell(r[k]);}).join(',');})).join('\r\n');
+    dl('\uFEFF'+csv,'muungano-employees-'+dateStr()+'.csv','text/csv;charset=utf-8');
+    toast(emps.length+' records exported to CSV','ok');
+  }).catch(function(e){showL(false);toast(e.message,'err');});
+}
+function expJSON(){
+  showL(true);
+  loadEmps().then(function(emps){
+    showL(false);
+    if(!emps.length){toast('No data to export','warn');return;}
+    dl(JSON.stringify(emps,null,2),'muungano-employees-'+dateStr()+'.json','application/json');
+    toast(emps.length+' records exported to JSON','ok');
+  }).catch(function(e){showL(false);toast(e.message,'err');});
+}
+</script>
+</body>
+</html>
