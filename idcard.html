@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>ID Cards — Muungano Family CBO</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&family=Playfair+Display:wght@700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<div id="toasts"></div>
+<div class="loader" id="loader"><div class="loader-spin"></div><span style="font-size:11px;color:var(--muted)">Loading...</span></div>
+
+<div id="appWrap">
+  <div id="chrome"></div>
+  <div id="main">
+    <div class="page show" id="pg-idcard">
+      <div id="pgHead"></div>
+      <div class="card">
+        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+          <label class="fl" style="margin:0;white-space:nowrap">Employee:</label>
+          <select class="fs" style="flex:1;min-width:120px;font-size:11px" id="icSel" onchange="genIC()"><option value="">-- Choose --</option></select>
+          <button class="btn btn-p btn-sm" onclick="printIC()"><i class="fas fa-print"></i></button>
+        </div>
+      </div>
+      <div id="icWrap" style="display:none;padding:10px 0"><div id="printA"></div></div>
+    </div>
+  </div>
+</div>
+
+<script src="assets/app.js"></script>
+<script>
+if(initPage('idcard')){
+  document.getElementById('pgHead').innerHTML=pageHead('fa-id-card','ID Cards','Generate and print official staff ID cards');
+  loadEmps().then(popICSel).catch(function(e){toast(e.message,'err');});
+}
+function popICSel(){
+  document.getElementById('icSel').innerHTML='<option value="">-- Choose Employee --</option>'+
+    allEmp.map(function(e){return '<option value="'+esc(e['Employee Number'])+'">'+esc(e['Full Name'])+' ('+esc(e['Staff Card ID'])+')</option>';}).join('');
+}
+function genIC(){
+  var en=gv('icSel'),w=document.getElementById('icWrap');
+  if(!en){w.style.display='none';return;}
+  var e=allEmp.find(function(x){return x['Employee Number']===en;});if(!e)return;
+  w.style.display='block';
+  document.getElementById('printA').innerHTML=icFront(e)+icBack(e)+
+    '<div style="text-align:center;margin-top:8px"><button class="btn btn-p btn-sm" onclick="printIC()"><i class="fas fa-print"></i> Print Card</button></div>';
+}
+function icFront(e){
+  var ph=e['Photo']?'<img src="'+e['Photo']+'" style="width:100%;height:100%;object-fit:cover">':'<i class="fas fa-user" style="font-size:22px;opacity:.6"></i>';
+  return '<div class="idf">'+
+    '<div style="display:flex;align-items:center;gap:8px"><img src="'+LOGO+'" style="width:30px;height:30px;border-radius:6px;border:2px solid rgba(255,255,255,.3)">'+
+    '<div><div class="fd" style="font-size:11px;font-weight:800;line-height:1.1">MUUNGANO FAMILY</div><div style="font-size:7px;letter-spacing:1px;opacity:.7">COMMUNITY-BASED ORGANIZATIONS</div></div></div>'+
+    '<div style="display:flex;gap:10px;margin-top:10px;align-items:center;position:relative;z-index:1">'+
+    '<div class="id-ph">'+ph+'</div>'+
+    '<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:800;line-height:1.15">'+esc(e['Full Name'])+'</div>'+
+    '<div style="font-size:9px;opacity:.85;margin-top:1px">'+esc(e['Position'])+'</div><div style="font-size:8px;opacity:.7">'+esc(e['Department'])+'</div>'+
+    '<div style="margin-top:5px;background:rgba(255,255,255,.18);display:inline-block;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:800;letter-spacing:1px">'+esc(e['Staff Card ID'])+'</div></div></div>'+
+    '<div style="display:flex;justify-content:space-between;font-size:7.5px;opacity:.8;margin-top:8px"><span>TYPE: '+esc((e['Employment Type']||'—').toUpperCase())+'</span><span>LOCATION: '+esc((e['Location']||'—').toUpperCase())+'</span><span>VALID: '+esc(e['Contract End Date']||'—')+'</span></div></div>';
+}
+function icBack(e){
+  function row(k,v){return '<tr><td style="color:var(--muted);width:38%;padding:2px 0">'+k+'</td><td style="font-weight:600">'+esc(v||'—')+'</td></tr>';}
+  return '<div class="idb"><div style="font-size:9px;font-weight:800;color:var(--pk);border-bottom:1px solid var(--border-l);padding-bottom:3px;margin-bottom:4px"><i class="fas fa-circle-info"></i> EMPLOYEE INFORMATION</div>'+
+    '<table style="width:100%;font-size:9px;border-collapse:collapse">'+
+    row('Employee No.',e['Employee Number'])+row('Contract ID',e['Contract ID'])+row('National ID',e['National ID'])+
+    row('Phone',e['Phone Number'])+row('Emergency',e['Emergency Contact Name']?e['Emergency Contact Name']+' · '+e['Emergency Contact Phone']:'')+
+    '</table>'+
+    '<div style="display:flex;justify-content:space-between;align-items:flex-end;margin-top:6px">'+
+    (e['Signature']?'<img src="'+e['Signature']+'" style="height:26px;border-bottom:1px solid #999;padding:0 6px">':'<div style="font-size:8px;color:var(--muted);border-bottom:1px solid #999;padding:0 20px 2px">Signature</div>')+
+    '<div style="font-size:7px;color:var(--muted);text-align:right">If found, please return to<br><b>Muungano Family CBOs</b></div></div>'+
+    '<div class="id-bar"></div></div>';
+}
+function printIC(){window.print();}
+</script>
+</body>
+</html>
