@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Payroll — Muungano Family CBO</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&family=Playfair+Display:wght@700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<div id="toasts"></div>
+<div class="loader" id="loader"><div class="loader-spin"></div><span style="font-size:11px;color:var(--muted)">Loading...</span></div>
+
+<div id="appWrap">
+  <div id="chrome"></div>
+  <div id="main">
+    <div class="page show" id="pg-payroll">
+      <div id="pgHead"></div>
+      <div class="card">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;flex-wrap:wrap;gap:6px">
+          <div class="stitle" style="margin:0;border:0;padding:0"><i class="fas fa-calendar-alt"></i>Month</div>
+          <select class="fs" id="prYear" onchange="curYear=this.value;loadPayrollView();" style="width:80px;font-size:11px;padding:7px"></select>
+        </div>
+        <div class="month-sel" id="monthSel"></div>
+      </div>
+      <div id="prList"></div>
+      <div class="card" id="prSumCard" style="display:none">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;flex-wrap:wrap;gap:6px">
+          <div class="stitle" style="margin:0;border:0;padding:0"><i class="fas fa-chart-bar"></i>Summary</div>
+          <button class="btn btn-p btn-sm" onclick="saveAllPay()"><i class="fas fa-save"></i> Save All</button>
+        </div>
+        <div style="overflow-x:auto"><table class="dtbl" id="prSumTbl"></table></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- PAYSLIP MODAL -->
+<div class="mo" id="psMo"><div class="mo-handle"></div><div class="mo-box" style="padding:14px" id="psCont"></div></div>
+
+<script src="assets/app.js"></script>
+<script>
+var prState={};
+if(initPage('payroll')){
+  document.getElementById('pgHead').innerHTML=pageHead('fa-money-bill-wave','Payroll','Mark attendance (Paid / Absent / Leave) and process monthly payments');
+  initPayroll();
+}
+function initPayroll(){
+  var now=new Date();
+  curMonth=MONTHS[now.getMonth()];curYear=String(now.getFullYear());
+  var ys=[now.getFullYear()-1,now.getFullYear(),now.getFullYear()+1];
+  document.getElementById('prYear').innerHTML=ys.map(function(y){return '<option'+(y===now.getFullYear()?' selected':'')+'>'+y+'</option>';}).join('');
+  buildMonthSel();
+  loadPayrollView();
+}
+function buildMonthSel(){
+  document.getElementById('monthSel').innerHTML=MONTHS.map(function(m){
+    return '<button class="m-btn'+(m===curMonth?' active':'')+'" onclick="pickMonth(\''+m+'\')">'+m.slice(0,3)+'</button>';
+  }).join('');
+}
+function pickMonth(m){curMonth=m;buildMonthSel();loadPayrollView();}
+function loadPayrollView(){showL(true);
+  loadEmps().then(function(){return loadPayData();}).then(function(){showL(false);renderPr();})
+  .catch(function(e){showL(false);toast(e.message,'err');});}
+
+function parseDays(r){try{var d=r['Days'];if(typeof d==='string')return JSON.parse(d)||{};return d||{};}catch(e){return {};}}
+function renderPr(){
+  prState={};
+  allPay.forEach(function(r){prState[r['Employee Number']]={days:parseDays(r),dirty:false};});
+  var act=allEmp.filter(function(e){return e['Employment Status']==='Active';});
+  var h=act.map(function(e){return '<div class="card" id="prc-'+uid(e['Employee Number'])+'">'+prCard(e)+'</div>';}).join('');
+  document.getElementById('prList').innerHTML=h||'<div class="card" style="text-align:center;color:var(--muted);font-size:12px;padding:24px"><i class="fas fa-users-slash" style="font-size:22px;opacity:.3;display:block;margin-bottom:6px"></i>No active employees for payroll</div>';
+  renderPrSum();
+}
+function dayCnt(days){var p=0,a=0,l=0;for(var k in days){if(days[k]==='P')p++;else if(days[k]==='A')a++;else if(days[k]==='L')l++;}return{p:p,a:a,l:l};}
+function payAmt(e,days){return Math.round(Number(e['Salary']||0)/30*dayCnt(days).p);}
+function dayCls(v){return v==='P'?'cal-p':v==='A'?'cal-a':v==='L'?'cal-l':'cal-empty';}
+function prCard(e){
+  var en=e['Employee Number'];
+  var st=prState[en]||(prState[en]={days:{},dirty:false});
+  var g='';
+  for(var d=1;d<=30;d++){var v=st.days[d]||'';
+    g+='<button type="button" class="cal-day '+dayCls(v)+'" onclick="toggleDay(\''+esc(en)+'\','+d+')"><span class="dn">'+d+'</span><span class="ds">'+(v||'·')+'</span></button>';}
+  var c=dayCnt(st.days);
+  return '<div style="display:flex;align-items:center;justify-content:space-between;gap:6px;margin-bottom:8px;flex-wrap:wrap">'+
+    '<div style="min-width:0"><div style="font-size:13px;font-weight:700">'+esc(e['Full Name'])+'</div><div style="font-size:10px;color:var(--muted)">'+esc(e['Position'])+' · '+esc(en)+'</div></div>'+
+    '<div style="text-align:right"><div style="font-size:13px;font-weight:800;color:var(--pk)">'+money(payAmt(e,st.days))+'</div><div style="font-size:9px;color:var(--muted)">'+money(e['Salary'])+' / month</div></div></div>'+
+    '<div class="cal-grid">'+g+'</div>'+
+    '<div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px;gap:6px;flex-wrap:wrap">'+
+      '<div style="font-size:10px;color:var(--muted)"><span style="color:var(--ok);font-weight:700">'+c.p+' Paid</span> · <span style="color:var(--err);font-weight:700">'+c.a+' Absent</span> · <span style="color:#D97706;font-weight:700">'+c.l+' Leave</span></div>'+
+      '<div style="display:flex;gap:4px">'+
+        '<button class="btn btn-sm btn-s" onclick="showPayslip(\''+esc(en)+'\')" title="Payslip"><i class="fas fa-file-invoice"></i></button>'+
+        '<button class="btn btn-sm '+(st.dirty?'btn-p':'btn-s')+'" onclick="saveOnePay(\''+esc(en)+'\')"><i class="fas fa-save"></i> '+(st.dirty?'Save*':'Saved')+'</button>'+
+      '</div></div>';
+}
+function toggleDay(en,d){
+  var e=allEmp.find(function(x){return x['Employee Number']===en;});if(!e)return;
+  var st=prState[en]||(prState[en]={days:{},dirty:false});
+  st.days[d]=st.days[d]==='P'?'A':st.days[d]==='A'?'L':st.days[d]==='L'?'':'P';
+  if(!st.days[d])delete st.days[d];
+  st.dirty=true;
+  document.getElementById('prc-'+uid(en)).innerHTML=prCard(e);
+  renderPrSum();
+}
+function payRecord(e,st){
+  var c=dayCnt(st.days);
+  return {'Employee Number':e['Employee Number'],'Full Name':e['Full Name'],'Month':curMonth,'Year':curYear,
+    'Days':JSON.stringify(st.days),'Paid Days':c.p,'Absent Days':c.a,'Leave Days':c.l,'Amount':payAmt(e,st.days)};
+}
+function saveOnePay(en,quiet){
+  var e=allEmp.find(function(x){return x['Employee Number']===en;});
+  var st=prState[en];if(!e||!st)return Promise.resolve();
+  return apiPost({action:'savePayroll',record:payRecord(e,st)}).then(function(r){
+    st.dirty=false;
+    var el=document.getElementById('prc-'+uid(en));if(el)el.innerHTML=prCard(e);
+    if(!quiet)toast(r.message||('Saved '+e['Full Name']),'ok');
+    renderPrSum();
+  });
+}
+function saveAllPay(){
+  var dirty=Object.keys(prState).filter(function(en){return prState[en].dirty;});
+  if(!dirty.length){toast('Nothing to save','info');return;}
+  showL(true);
+  var chain=Promise.resolve();
+  dirty.forEach(function(en){chain=chain.then(function(){return saveOnePay(en,true);});});
+  chain.then(function(){showL(false);toast(dirty.length+' payroll record(s) saved','ok');renderPrSum();})
+  .catch(function(e){showL(false);toast(e.message,'err');});
+}
+function renderPrSum(){
+  var act=allEmp.filter(function(e){return e['Employment Status']==='Active';});
+  var rec=0,pd=0,amt=0;
+  act.forEach(function(e){var st=prState[e['Employee Number']];if(!st)return;
+    var c=dayCnt(st.days);if(c.p+c.a+c.l>0){rec++;pd+=c.p;amt+=payAmt(e,st.days);}});
+  var card=document.getElementById('prSumCard');
+  if(!act.length){card.style.display='none';return;}
+  card.style.display='block';
+  document.getElementById('prSumTbl').innerHTML=
+    '<tr><th>Total Active</th><th>Processed</th><th>Paid Days</th><th>Total Payout</th></tr>'+
+    '<tr><td style="font-weight:700">'+act.length+'</td><td style="font-weight:700">'+rec+'</td><td style="font-weight:700">'+pd+'</td><td style="font-weight:800;color:var(--pk)">'+money(amt)+'</td></tr>';
+}
+/* --- Payslip --- */
+function showPayslip(en){
+  var e=allEmp.find(function(x){return x['Employee Number']===en;});
+  var st=prState[en];if(!e||!st)return;
+  var c=dayCnt(st.days),amt=payAmt(e,st.days);
+  function r(k,v){return '<tr><td style="color:var(--muted);width:45%">'+k+'</td><td style="font-weight:600">'+esc(v||'—')+'</td></tr>';}
+  document.getElementById('psCont').innerHTML=
+    '<div class="payslip" id="printA">'+
+      '<h2 class="fd">MUUNGANO FAMILY CBOs</h2>'+
+      '<div class="ps-sub">Employee Payslip — '+esc(curMonth)+' '+esc(curYear)+'</div>'+
+      '<table><tr><th colspan="2">Employee Details</th></tr>'+
+      r('Name',e['Full Name'])+r('Employee No.',e['Employee Number'])+r('Position',e['Position'])+r('Department',e['Department'])+r('Staff Card ID',e['Staff Card ID'])+
+      '<tr><th colspan="2">Attendance</th></tr>'+
+      r('Days Paid',c.p+' of 30')+r('Absent',c.a)+r('Leave',c.l)+
+      '<tr><th colspan="2">Payment</th></tr>'+
+      r('Monthly Salary',money(e['Salary']))+r('Days Paid × Daily Rate',c.p+' × '+money(Math.round(Number(e['Salary']||0)/30)))+
+      '</table>'+
+      '<div class="ps-total">NET PAY: '+money(amt)+'</div>'+
+      '<div class="ps-sig"><div><div class="sig-line"></div>Employee</div><div><div class="sig-line"></div>Authorized</div></div>'+
+    '</div>'+
+    '<div style="display:flex;gap:6px;justify-content:center;margin-top:10px">'+
+      '<button class="btn btn-s btn-sm" onclick="closeMo(\'psMo\')">Close</button>'+
+      '<button class="btn btn-p btn-sm" onclick="window.print()"><i class="fas fa-print"></i> Print Payslip</button>'+
+    '</div>';
+  openMo('psMo');
+}
+</script>
+</body>
+</html>
