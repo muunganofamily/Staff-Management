@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Directory — Muungano Family CBO</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&family=Playfair+Display:wght@700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<div id="toasts"></div>
+<div class="loader" id="loader"><div class="loader-spin"></div><span style="font-size:11px;color:var(--muted)">Loading...</span></div>
+
+<div id="appWrap">
+  <div id="chrome"></div>
+  <div id="main">
+    <div class="page show" id="pg-list">
+      <div id="pgHead"></div>
+      <div class="card">
+        <div class="sbox" style="margin-bottom:8px"><i class="fas fa-search"></i><input type="text" class="fi" id="lS" placeholder="Search name, ID, phone..." oninput="renderList()"></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px">
+          <select class="fs" id="lLo" onchange="renderList()" style="font-size:10px;padding:8px"><option value="">All Locations</option><option>Kakuma</option><option>Kalobeyei</option><option>Other</option></select>
+          <select class="fs" id="lDe" onchange="renderList()" style="font-size:10px;padding:8px"><option value="">All Depts</option><option>Administration</option><option>Finance</option><option>Programs</option><option>Field Operations</option><option>M&E</option><option>Logistics</option><option>HR</option><option>Community Liaison</option><option>Protection</option><option>WASH</option><option>Education</option><option>Health</option><option>Livelihoods</option><option>Security Officer</option><option>Other</option></select>
+          <select class="fs" id="lSt" onchange="renderList()" style="font-size:10px;padding:8px"><option value="">All Status</option><option>Active</option><option>Suspended</option><option>Resigned</option><option>Terminated</option></select>
+        </div>
+      </div>
+      <div id="listCards"></div>
+      <div id="emptyM" style="text-align:center;padding:30px;color:var(--muted);display:none"><i class="fas fa-inbox" style="font-size:24px;opacity:.3"></i><p style="font-size:11px;margin-top:6px">No employees found</p></div>
+    </div>
+  </div>
+</div>
+
+<!-- VIEW MODAL -->
+<div class="mo" id="viewMo"><div class="mo-handle"></div><div class="mo-box" style="padding:0">
+  <div style="padding:12px 14px;border-bottom:1px solid var(--border-l);display:flex;align-items:center;justify-content:space-between">
+    <h3 style="font-size:14px;font-weight:700"><i class="fas fa-user" style="color:var(--pk);margin-right:5px"></i>Employee Details</h3>
+    <button onclick="closeMo('viewMo')" style="background:none;border:none;cursor:pointer;font-size:16px;color:var(--muted);padding:4px"><i class="fas fa-times"></i></button>
+  </div>
+  <div id="viewB" style="padding:14px"></div>
+</div></div>
+
+<!-- DELETE MODAL -->
+<div class="mo" id="delMo"><div class="mo-handle"></div><div class="mo-box" style="max-width:360px;padding:20px;text-align:center">
+  <div style="width:46px;height:46px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 10px;background:var(--err-l);color:var(--err);font-size:20px"><i class="fas fa-exclamation-triangle"></i></div>
+  <h3 style="font-size:14px;font-weight:700;margin-bottom:3px">Delete Employee?</h3>
+  <p style="font-size:11px;color:var(--muted);margin-bottom:14px">Permanently removes from Google Sheets.</p>
+  <div style="display:flex;gap:6px;justify-content:center"><button class="btn btn-s btn-sm" onclick="closeMo('delMo')">Cancel</button><button class="btn btn-d btn-sm" id="delB">Delete</button></div>
+</div></div>
+
+<script src="assets/app.js"></script>
+<script>
+if(initPage('list')){
+  document.getElementById('pgHead').innerHTML=pageHead('fa-users','Staff Directory','Browse, search and manage all employee records');
+  loadAndRender();
+}
+function loadAndRender(){showL(true);
+  loadEmps().then(function(){showL(false);renderList();})
+  .catch(function(e){showL(false);toast(e.message,'err');});}
+
+function renderList(){
+  var q=gv('lS').toLowerCase(),lo=gv('lLo'),de=gv('lDe'),st=gv('lSt');
+  var rows=allEmp.filter(function(e){
+    if(lo&&e['Location']!==lo)return false;
+    if(de&&e['Department']!==de)return false;
+    if(st&&e['Employment Status']!==st)return false;
+    if(q){var hay=[e['Full Name'],e['Employee Number'],e['Staff Card ID'],e['Phone Number'],e['Position']].join(' ').toLowerCase();
+      if(hay.indexOf(q)<0)return false;}
+    return true;
+  });
+  document.getElementById('emptyM').style.display=rows.length?'none':'block';
+  document.getElementById('listCards').innerHTML=rows.map(function(e){
+    var ph=e['Photo']?'<img src="'+e['Photo']+'" alt="">':initials(e['Full Name']);
+    return '<div class="card list-card">'+
+      '<div class="avatar">'+ph+'</div>'+
+      '<div style="flex:1;min-width:0">'+
+        '<div style="font-size:13px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(e['Full Name'])+'</div>'+
+        '<div style="font-size:10px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(e['Position'])+' · '+esc(e['Department'])+'</div>'+
+        '<div style="margin-top:3px;display:flex;gap:4px;flex-wrap:wrap;align-items:center"><span class="'+stCls(e['Employment Status'])+'">'+esc(e['Employment Status']||'—')+'</span><span class="'+stCls(e['Employment Type'])+'">'+esc(e['Employment Type']||'—')+'</span><span style="font-size:9px;color:var(--muted)">'+esc(e['Staff Card ID'])+'</span></div>'+
+      '</div>'+
+      '<div style="display:flex;flex-direction:column;gap:4px">'+
+        '<button class="btn btn-xs btn-s" onclick="viewEmp(\''+esc(e['Employee Number'])+'\')" title="View"><i class="fas fa-eye"></i></button>'+
+        '<button class="btn btn-xs btn-p" onclick="editEmp(\''+esc(e['Employee Number'])+'\')" title="Edit"><i class="fas fa-pen"></i></button>'+
+        '<button class="btn btn-xs btn-d admin-only" onclick="askDel(\''+esc(e['Employee Number'])+'\')" title="Delete"><i class="fas fa-trash"></i></button>'+
+      '</div></div>';
+  }).join('');
+}
+function viewEmp(en){
+  var e=allEmp.find(function(x){return x['Employee Number']===en;});if(!e)return;
+  function it(k,l){return '<div class="ditem"><div class="dk">'+l+'</div><div class="dv">'+esc(e[k]||'—')+'</div></div>';}
+  document.getElementById('viewB').innerHTML=
+    '<div style="display:flex;gap:10px;align-items:center;margin-bottom:10px">'+
+      '<div class="avatar" style="width:56px;height:56px;font-size:18px">'+(e['Photo']?'<img src="'+e['Photo']+'">':initials(e['Full Name']))+'</div>'+
+      '<div style="flex:1;min-width:0"><div style="font-size:15px;font-weight:800">'+esc(e['Full Name'])+'</div>'+
+      '<div style="font-size:11px;color:var(--muted)">'+esc(e['Position'])+' · '+esc(e['Department'])+'</div>'+
+      '<div style="margin-top:4px;display:flex;gap:4px"><span class="'+stCls(e['Employment Status'])+'">'+esc(e['Employment Status'])+'</span><span class="'+stCls(e['Employment Type'])+'">'+esc(e['Employment Type'])+'</span></div></div></div>'+
+    '<div class="dgrid">'+it('Employee Number','Employee No.')+it('Staff Card ID','Staff Card ID')+it('Contract ID','Contract ID')+it('National ID','National ID')+it('Gender','Gender')+it('Date of Birth','Date of Birth')+it('Nationality','Nationality')+it('Phone Number','Phone')+it('Email Address','Email')+it('Location','Location')+it('Contract Start Date','Start Date')+it('Contract End Date','End Date')+it('Supervisor','Supervisor')+it('Salary','Salary (KES)')+it('Emergency Contact Name','Emergency Contact')+it('Emergency Contact Phone','Emergency Phone')+'</div>'+
+    (e['Remarks']?'<div class="ditem" style="margin-top:8px"><div class="dk">Remarks</div><div class="dv">'+esc(e['Remarks'])+'</div></div>':'')+
+    (e['Signature']?'<div style="margin-top:10px"><div style="font-size:9px;color:var(--muted);font-weight:600;text-transform:uppercase">Signature</div><img src="'+e['Signature']+'" style="height:44px;background:#fff;border:1px dashed var(--border);border-radius:6px;padding:2px"></div>':'');
+  openMo('viewMo');
+}
+function editEmp(en){location.href='add-staff.html?en='+encodeURIComponent(en);}
+function askDel(en){
+  document.getElementById('delB').onclick=function(){
+    closeMo('delMo');showL(true);
+    apiPost({action:'delete',employeeNumber:en}).then(function(r){
+      showL(false);toast(r.message||'Employee deleted','ok');loadAndRender();
+    }).catch(function(er){showL(false);toast(er.message,'err');});
+  };
+  openMo('delMo');
+}
+</script>
+</body>
+</html>
