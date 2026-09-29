@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Add Staff — Muungano Family CBO</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&family=Playfair+Display:wght@700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<div id="toasts"></div>
+<div class="loader" id="loader"><div class="loader-spin"></div><span style="font-size:11px;color:var(--muted)">Saving...</span></div>
+
+<div id="appWrap">
+  <div id="chrome"></div>
+  <div id="main">
+    <div class="page show" id="pg-add">
+      <div id="pgHead"></div>
+      <div class="card">
+        <div class="stitle"><i class="fas fa-user-plus"></i><span id="fTitle">Add New Staff Member</span></div>
+        <div style="margin-bottom:10px">
+          <div class="fg" style="margin-bottom:6px"><label class="fl">Employee Number <button type="button" class="btn btn-xs btn-s" onclick="suggestIds()"><i class="fas fa-magic"></i> Auto</button></label><input type="text" class="fi" id="fEN" placeholder="MF-EMP-0001" style="font-weight:700"></div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+            <div class="fg" style="margin:0"><label class="fl">Contract ID</label><input type="text" class="fi" id="fCI" placeholder="MF-CON-2026-0001" style="font-weight:700;font-size:12px"></div>
+            <div class="fg" style="margin:0"><label class="fl">Staff Card ID</label><input type="text" class="fi" id="fSI" placeholder="MF-ID-0001" style="font-weight:700;font-size:12px"></div>
+          </div>
+        </div>
+        <form id="eForm" onsubmit="saveEmp(event)"><input type="hidden" id="eIdx" value="-1">
+          <div style="display:flex;gap:10px;margin-bottom:10px">
+            <div><label class="fl">Photo</label>
+              <div class="ph-up" onclick="document.getElementById('phI').click()"><i class="fas fa-camera" style="color:var(--muted)" id="phIc"></i><span style="font-size:8px;color:var(--muted)" id="phTx">Upload</span><img id="phPr" style="display:none" alt=""><div class="ov"><i class="fas fa-pen" style="font-size:10px"></i></div></div>
+              <input type="file" id="phI" accept="image/*" style="display:none" onchange="handlePh(event)">
+            </div>
+            <div style="flex:1"><label class="fl">Signature</label><canvas id="sigC"></canvas><button type="button" class="btn btn-xs btn-s" style="margin-top:4px" onclick="clrSig()"><i class="fas fa-eraser"></i> Clear</button></div>
+          </div>
+          <div class="stitle"><i class="fas fa-user"></i>Personal Information</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:0 10px">
+            <div class="fg"><label class="fl">Full Name *</label><input type="text" class="fi" id="fN" required></div>
+            <div class="fg"><label class="fl">Gender *</label><select class="fs" id="fG" required><option value="">Select</option><option>Male</option><option>Female</option><option>Other</option></select></div>
+            <div class="fg"><label class="fl">Date of Birth *</label><input type="date" class="fi" id="fD" required></div>
+            <div class="fg"><label class="fl">National/Refugee/UNHCR ID *</label><input type="text" class="fi" id="fNI" required></div>
+            <div class="fg"><label class="fl">Nationality *</label><input type="text" class="fi" id="fNa" required></div>
+            <div class="fg"><label class="fl">Phone *</label><input type="tel" class="fi" id="fPh" required></div>
+            <div class="fg" style="grid-column:1/-1"><label class="fl">Email</label><input type="email" class="fi" id="fEm"></div>
+          </div>
+          <div class="stitle" style="margin-top:2px"><i class="fas fa-briefcase"></i>Employment Details</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:0 10px">
+            <div class="fg"><label class="fl">Location *</label><select class="fs" id="fLo" required><option value="">Select</option><option>Kakuma</option><option>Kalobeyei</option><option>Other</option></select></div>
+            <div class="fg"><label class="fl">Department *</label><select class="fs" id="fDe" required><option value="">Select</option><option>Administration</option><option>Finance</option><option>Programs</option><option>Field Operations</option><option>Monitoring & Evaluation</option><option>Logistics</option><option>Human Resources</option><option>Community Liaison</option><option>Protection</option><option>WASH</option><option>Education</option><option>Health</option><option>Livelihoods</option><option>Security Officer</option><option>Other</option></select></div>
+            <div class="fg"><label class="fl">Position *</label><input type="text" class="fi" id="fPo" required></div>
+            <div class="fg"><label class="fl">Type *</label><select class="fs" id="fTy" required><option value="">Select</option><option>Permanent</option><option>Contract</option><option>Volunteer</option><option>Casual</option></select></div>
+            <div class="fg"><label class="fl">Start Date *</label><input type="date" class="fi" id="fSD" required></div>
+            <div class="fg"><label class="fl">End Date</label><input type="date" class="fi" id="fED"></div>
+            <div class="fg"><label class="fl">Supervisor</label><input type="text" class="fi" id="fSu"></div>
+            <div class="fg"><label class="fl">Salary/Allowance (KES) *</label><input type="number" class="fi" id="fSa" required></div>
+            <div class="fg"><label class="fl">Status *</label><select class="fs" id="fSt" required><option value="">Select</option><option>Active</option><option>Suspended</option><option>Resigned</option><option>Terminated</option></select></div>
+          </div>
+          <div class="stitle" style="margin-top:2px"><i class="fas fa-phone-alt"></i>Emergency Contact</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:0 10px">
+            <div class="fg"><label class="fl">Name</label><input type="text" class="fi" id="fECN"></div>
+            <div class="fg"><label class="fl">Phone</label><input type="tel" class="fi" id="fECP"></div>
+          </div>
+          <div class="fg"><label class="fl">Remarks</label><textarea class="ft" id="fRm"></textarea></div>
+          <div style="display:flex;gap:6px;padding-top:8px;border-top:1px solid var(--border-l)">
+            <button type="submit" class="btn btn-p btn-block"><i class="fas fa-save"></i> <span id="saveT">Save to Google Sheets</span></button>
+            <button type="button" class="btn btn-s" onclick="resetForm()" style="min-width:50px"><i class="fas fa-times"></i></button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="assets/app.js"></script>
+<script>
+var curPh='';
+if(initPage('add')){
+  document.getElementById('pgHead').innerHTML=pageHead('fa-user-plus','Add Staff','Register a new employee or update an existing record');
+  initSig();
+  loadEmps().then(function(){
+    var en=new URLSearchParams(location.search).get('en');
+    if(en)fillEdit(en);
+  }).catch(function(e){toast(e.message,'err');});
+}
+
+/* --- Auto IDs --- */
+function suggestIds(){showL(true);
+  apiGet('getNextIds').then(function(d){showL(false);
+    if(d.success){sv('fEN',d.employeeNumber);sv('fCI',d.contractId);sv('fSI',d.staffCardId);toast('IDs suggested','ok');}
+  }).catch(function(e){showL(false);toast(e.message,'err');});
+}
+
+/* --- Photo upload (compressed) --- */
+function handlePh(e){var f=e.target.files[0];if(!f)return;
+  var r=new FileReader();
+  r.onload=function(ev){var img=new Image();
+    img.onload=function(){var c=document.createElement('canvas'),w=img.width,h=img.height;
+      if(w>100){h=h*100/w;w=100;}if(h>130){w=w*130/h;h=130;}
+      c.width=w;c.height=h;c.getContext('2d').drawImage(img,0,0,w,h);
+      curPh=c.toDataURL('image/jpeg',0.35);
+      document.getElementById('phPr').src=curPh;document.getElementById('phPr').style.display='block';
+      document.getElementById('phIc').style.display='none';document.getElementById('phTx').style.display='none';
+    };img.src=ev.target.result;};
+  r.readAsDataURL(f);}
+
+/* --- Signature pad --- */
+var sigCv,sigXt,sigDr=false;
+function initSig(){sigCv=document.getElementById('sigC');sigXt=sigCv.getContext('2d');
+  sigXt.strokeStyle='#2D2D3A';sigXt.lineWidth=2;sigXt.lineCap='round';sigXt.lineJoin='round';
+  function gp(e){var r=sigCv.getBoundingClientRect(),t=e.touches?e.touches[0]:e;return{x:t.clientX-r.left,y:t.clientY-r.top};}
+  sigCv.addEventListener('mousedown',function(e){sigDr=true;var p=gp(e);sigXt.beginPath();sigXt.moveTo(p.x,p.y);});
+  sigCv.addEventListener('mousemove',function(e){if(!sigDr)return;var p=gp(e);sigXt.lineTo(p.x,p.y);sigXt.stroke();});
+  sigCv.addEventListener('mouseup',function(){sigDr=false;});
+  sigCv.addEventListener('mouseleave',function(){sigDr=false;});
+  sigCv.addEventListener('touchstart',function(e){e.preventDefault();sigDr=true;var p=gp(e);sigXt.beginPath();sigXt.moveTo(p.x,p.y);},{passive:false});
+  sigCv.addEventListener('touchmove',function(e){e.preventDefault();if(!sigDr)return;var p=gp(e);sigXt.lineTo(p.x,p.y);sigXt.stroke();},{passive:false});
+  sigCv.addEventListener('touchend',function(){sigDr=false;});}
+function clrSig(){if(sigXt)sigXt.clearRect(0,0,sigCv.width,sigCv.height);}
+function getSig(){return sigCv?sigCv.toDataURL():'';}
+
+/* --- Save (Add or Update) --- */
+function saveEmp(e){
+  e.preventDefault();if(isLoading)return;
+  var en=gv('fEN').trim(),ci=gv('fCI').trim(),si=gv('fSI').trim();
+  if(!en||!ci||!si){toast('Fill Employee Number, Contract ID & Staff Card ID','warn');return;}
+  var data={'Employee Number':en,'Full Name':gv('fN').trim(),'Gender':gv('fG'),'Date of Birth':gv('fD'),
+    'National ID':gv('fNI').trim(),'Contract ID':ci,'Staff Card ID':si,'Phone Number':gv('fPh').trim(),
+    'Email Address':gv('fEm').trim(),'Nationality':gv('fNa').trim(),'Location':gv('fLo'),'Department':gv('fDe'),
+    'Position':gv('fPo').trim(),'Employment Type':gv('fTy'),'Contract Start Date':gv('fSD'),'Contract End Date':gv('fED'),
+    'Supervisor':gv('fSu').trim(),'Salary':gv('fSa'),'Employment Status':gv('fSt'),
+    'Emergency Contact Name':gv('fECN').trim(),'Emergency Contact Phone':gv('fECP').trim(),
+    'Photo':curPh,'Signature':getSig(),'Remarks':gv('fRm').trim()};
+  var idx=parseInt(gv('eIdx'),10),act=idx>=0?'update':'add';
+  showL(true);
+  apiPost({action:act,data:data,employeeNumber:idx>=0?en:undefined}).then(function(r){
+    showL(false);toast(r.message||'Saved successfully','ok');
+    location.href='directory.html';
+  }).catch(function(er){showL(false);toast(er.message,'err');});
+}
+function resetForm(){
+  document.getElementById('eForm').reset();
+  document.getElementById('eIdx').value=-1;
+  document.getElementById('fTitle').textContent='Add New Staff Member';
+  document.getElementById('saveT').textContent='Save to Google Sheets';
+  curPh='';document.getElementById('phPr').style.display='none';
+  document.getElementById('phIc').style.display='';document.getElementById('phTx').style.display='';
+  clrSig();
+}
+
+/* --- Edit via ?en= param --- */
+function fillEdit(en){
+  var e=allEmp.find(function(x){return x['Employee Number']===en;});if(!e)return;
+  document.getElementById('fTitle').textContent='Edit — '+e['Full Name'];
+  document.getElementById('saveT').textContent='Update Employee';
+  document.getElementById('eIdx').value=0;
+  sv('fEN',e['Employee Number']);sv('fCI',e['Contract ID']);sv('fSI',e['Staff Card ID']);
+  sv('fN',e['Full Name']);sv('fG',e['Gender']);sv('fD',e['Date of Birth']);sv('fNI',e['National ID']);
+  sv('fNa',e['Nationality']);sv('fPh',e['Phone Number']);sv('fEm',e['Email Address']);
+  sv('fLo',e['Location']);sv('fDe',e['Department']);sv('fPo',e['Position']);sv('fTy',e['Employment Type']);
+  sv('fSD',e['Contract Start Date']);sv('fED',e['Contract End Date']);sv('fSu',e['Supervisor']);
+  sv('fSa',e['Salary']);sv('fSt',e['Employment Status']);sv('fECN',e['Emergency Contact Name']);
+  sv('fECP',e['Emergency Contact Phone']);sv('fRm',e['Remarks']);
+  if(e['Photo']){curPh=e['Photo'];document.getElementById('phPr').src=e['Photo'];
+    document.getElementById('phPr').style.display='block';
+    document.getElementById('phIc').style.display='none';document.getElementById('phTx').style.display='none';}
+  if(e['Signature']&&sigXt){var img=new Image();
+    img.onload=function(){sigXt.clearRect(0,0,sigCv.width,sigCv.height);sigXt.drawImage(img,0,0);};
+    img.src=e['Signature'];}
+}
+</script>
+</body>
+</html>
