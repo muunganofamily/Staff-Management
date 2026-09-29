@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Verify — Muungano Family CBO</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&family=Playfair+Display:wght@700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<div id="toasts"></div>
+<div class="loader" id="loader"><div class="loader-spin"></div><span style="font-size:11px;color:var(--muted)">Verifying...</span></div>
+
+<div id="appWrap">
+  <div id="chrome"></div>
+  <div id="main">
+    <div class="page show" id="pg-verify">
+      <div id="pgHead"></div>
+      <div class="card" style="text-align:center;padding:24px 14px">
+        <div style="width:52px;height:52px;border-radius:14px;display:flex;align-items:center;justify-content:center;margin:0 auto 10px;background:var(--grad);color:#fff;font-size:20px"><i class="fas fa-shield-alt"></i></div>
+        <h2 class="fd" style="font-size:17px;margin-bottom:3px">Staff Verification</h2>
+        <p style="font-size:11px;color:var(--muted);margin-bottom:14px">Enter Staff Card ID or Contract ID</p>
+        <div class="sbox" style="margin-bottom:8px"><i class="fas fa-search"></i><input type="text" class="fi" style="text-align:center;font-weight:600" id="vIn" placeholder="MF-ID-0001" onkeydown="if(event.key==='Enter')doVerify()"></div>
+        <button class="btn btn-p btn-block" onclick="doVerify()"><i class="fas fa-check-circle"></i> Verify Identity</button>
+      </div>
+      <div id="vRes" style="margin-top:6px"></div>
+    </div>
+  </div>
+</div>
+
+<script src="assets/app.js"></script>
+<script>
+if(initPage('verify')){
+  document.getElementById('pgHead').innerHTML=pageHead('fa-shield-alt','Verify','Confirm an employee\'s identity against official records');
+}
+function doVerify(){
+  var q=gv('vIn').trim();
+  if(!q){toast('Enter a Staff Card ID or Contract ID','warn');return;}
+  showL(true);
+  loadEmps().then(function(){
+    showL(false);
+    var t=q.toLowerCase();
+    var e=allEmp.find(function(x){
+      return String(x['Staff Card ID']||'').toLowerCase()===t||String(x['Contract ID']||'').toLowerCase()===t;});
+    renderV(e,q);
+  }).catch(function(err){showL(false);toast(err.message,'err');});
+}
+function dv(k,v){return '<div class="ditem" style="text-align:left"><div class="dk">'+k+'</div><div class="dv">'+esc(v||'—')+'</div></div>';}
+function renderV(e,q){
+  var box=document.getElementById('vRes');
+  if(!e){
+    box.innerHTML='<div class="vr-no"><i class="fas fa-times-circle" style="font-size:34px;color:var(--err)"></i>'+
+      '<h3 class="fd" style="font-size:15px;margin:8px 0 2px;color:var(--err)">Not Verified</h3>'+
+      '<p style="font-size:11px;color:var(--muted)">No employee matches "'+esc(q)+'"</p></div>';
+    return;
+  }
+  var ok=e['Employment Status']==='Active';
+  box.innerHTML='<div class="'+(ok?'vr-ok':'vr-no')+'">'+
+    '<i class="fas fa-'+(ok?'check-circle':'exclamation-circle')+'" style="font-size:34px;color:'+(ok?'var(--ok)':'var(--warn)')+'"></i>'+
+    '<h3 class="fd" style="font-size:15px;margin:8px 0 2px">'+esc(e['Full Name'])+'</h3>'+
+    '<p style="font-size:11px;color:var(--muted)">'+esc(e['Position'])+' · '+esc(e['Department'])+'</p>'+
+    '<div class="avatar" style="width:64px;height:64px;margin:10px auto;font-size:20px">'+(e['Photo']?'<img src="'+e['Photo']+'">':initials(e['Full Name']))+'</div>'+
+    '<div class="dgrid" style="margin-top:8px">'+
+      dv('Staff Card ID',e['Staff Card ID'])+dv('Contract ID',e['Contract ID'])+
+      dv('Status',e['Employment Status'])+dv('Location',e['Location'])+
+      dv('Phone',e['Phone Number'])+dv('Contract End',e['Contract End Date'])+
+    '</div>'+
+    '<div style="margin-top:12px"><span class="'+stCls(e['Employment Status'])+'" style="font-size:11px;padding:5px 14px">'+
+    (ok?'✔ Verified — Active':'⚠ '+esc(e['Employment Status']||'Check Status'))+'</span></div></div>';
+}
+</script>
+</body>
+</html>
