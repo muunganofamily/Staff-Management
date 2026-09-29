@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Settings — Muungano Family CBO</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&family=Playfair+Display:wght@700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<div id="toasts"></div>
+<div class="loader" id="loader"><div class="loader-spin"></div><span style="font-size:11px;color:var(--muted)">Loading...</span></div>
+
+<div id="appWrap">
+  <div id="chrome"></div>
+  <div id="main">
+    <div class="page show" id="pg-settings">
+      <div id="pgHead"></div>
+      <div class="card">
+        <div class="stitle"><i class="fas fa-user-cog"></i>Admin Users Management</div>
+        <div id="usersList"><p style="font-size:11px;color:var(--muted)">Loading users...</p></div>
+        <div style="border-top:1px solid var(--border-l);padding-top:10px;margin-top:10px">
+          <div style="font-size:11px;font-weight:700;color:var(--pk);margin-bottom:8px">Add New Admin User</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+            <input type="text" class="fi" id="nuName" placeholder="Full Name" style="font-size:12px">
+            <input type="text" class="fi" id="nuPass" placeholder="Password" style="font-size:12px">
+          </div>
+          <button class="btn btn-p btn-sm btn-block" style="margin-top:8px" onclick="addUser()"><i class="fas fa-user-plus"></i> Add Admin</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="assets/app.js"></script>
+<script>
+if(initPage('settings')){
+  document.getElementById('pgHead').innerHTML=pageHead('fa-cog','Settings','Manage administrator accounts and portal access');
+  loadUsers();
+}
+function loadUsers(){
+  showL(true);
+  apiGet('readUsers').then(function(d){
+    showL(false);renderUsers(d.data||[]);
+  }).catch(function(e){
+    showL(false);
+    document.getElementById('usersList').innerHTML='<p style="font-size:11px;color:var(--err)">'+esc(e.message)+'</p>';
+  });
+}
+function renderUsers(us){
+  document.getElementById('usersList').innerHTML=us.length?us.map(function(u){
+    var n=u['Full Name']||u['Name']||'',r=u['Role']||'Admin';
+    return '<div style="display:flex;align-items:center;gap:8px;padding:8px;border:1px solid var(--border-l);border-radius:10px;margin-bottom:6px">'+
+      '<div class="avatar" style="width:34px;height:34px;font-size:12px">'+initials(n)+'</div>'+
+      '<div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:600">'+esc(n)+'</div><div style="font-size:9px;color:var(--muted)">'+esc(r)+'</div></div>'+
+      '<button class="btn btn-xs btn-d" onclick="delUser(\''+esc(n)+'\')"><i class="fas fa-trash"></i></button></div>';
+  }).join(''):'<p style="font-size:11px;color:var(--muted)">No admin users found.</p>';
+}
+function addUser(){
+  var n=gv('nuName').trim(),p=gv('nuPass').trim();
+  if(!n||!p){toast('Enter name and password','warn');return;}
+  showL(true);
+  apiPost({action:'addUser',data:{'Full Name':n,'Password':p,'Role':'Admin'}}).then(function(r){
+    showL(false);toast(r.message||'Admin added','ok');
+    sv('nuName','');sv('nuPass','');loadUsers();
+  }).catch(function(e){showL(false);toast(e.message,'err');});
+}
+function delUser(n){
+  if(!confirm('Remove admin "'+n+'"?'))return;
+  showL(true);
+  apiPost({action:'deleteUser',name:n}).then(function(r){
+    showL(false);toast(r.message||'Removed','ok');loadUsers();
+  }).catch(function(e){showL(false);toast(e.message,'err');});
+}
+</script>
+</body>
+</html>
