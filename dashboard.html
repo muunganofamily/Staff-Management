@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Dashboard — Muungano Family CBO</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&family=Playfair+Display:wght@700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<div id="toasts"></div>
+<div class="loader" id="loader"><div class="loader-spin"></div><span style="font-size:11px;color:var(--muted)">Loading...</span></div>
+
+<div id="appWrap">
+  <div id="chrome"></div>
+  <div id="main">
+    <div class="page show" id="pg-dashboard">
+      <div id="pgHead"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px" id="statsR"></div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px" id="quickA"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px">
+        <div class="card"><div class="stitle"><i class="fas fa-map-marker-alt"></i>By Location</div><div id="chLoc"></div></div>
+        <div class="card"><div class="stitle"><i class="fas fa-building"></i>By Department</div><div id="chDept"></div></div>
+      </div>
+      <div class="card"><div class="stitle"><i class="fas fa-exclamation-triangle"></i>Expiring Contracts (30 Days)</div><div id="expL"></div></div>
+    </div>
+  </div>
+</div>
+
+<script src="assets/app.js"></script>
+<script>
+if(initPage('dashboard')){
+  document.getElementById('pgHead').innerHTML=pageHead('fa-chart-pie','Dashboard','Overview of staff & organization at a glance');
+  refreshDash();
+}
+function refreshDash(){
+  showL(true);
+  loadEmps().then(function(emps){
+    showL(false);
+    var tot=emps.length,
+        act=emps.filter(function(e){return e['Employment Status']==='Active';}).length,
+        con=emps.filter(function(e){return e['Employment Type']==='Contract';}).length,
+        vol=emps.filter(function(e){return e['Employment Type']==='Volunteer';}).length;
+    document.getElementById('statsR').innerHTML=
+      sC('fa-users','var(--grad)',tot,'Total Staff','var(--pk)')+
+      sC('fa-user-check','var(--ok)',act,'Active','var(--ok)')+
+      sC('fa-file-contract','var(--info)',con,'Contracts','var(--info)')+
+      sC('fa-hand-holding-heart','var(--warn)',vol,'Volunteers','var(--warn)');
+    document.getElementById('quickA').innerHTML=
+      qa('fa-user-plus','Add Staff','add','admin-only')+
+      qa('fa-money-bill-wave','Run Payroll','payroll','admin-only')+
+      qa('fa-shield-alt','Verify ID','verify','')+
+      qa('fa-id-card','Generate ID','idcard','');
+    var locs={},depts={};
+    emps.forEach(function(e){var l=e['Location']||'?';locs[l]=(locs[l]||0)+1;var d=e['Department']||'?';depts[d]=(depts[d]||0)+1;});
+    document.getElementById('chLoc').innerHTML=barC(locs,{Kakuma:'#C2185B',Kalobeyei:'#880E4F',Other:'#E91E63'},tot);
+    document.getElementById('chDept').innerHTML=barC(depts,['#C2185B','#880E4F','#E91E63','#AD1457','#D81B60'],tot);
+    var now=new Date(),td30=new Date(now.getTime()+30*86400000);
+    var exp=emps.filter(function(e){
+      if(!e['Contract End Date']||e['Employment Status']!=='Active')return false;
+      var en=new Date(e['Contract End Date']);return en>=now&&en<=td30;
+    });
+    document.getElementById('expL').innerHTML=exp.length===0
+      ?'<p style="font-size:11px;color:var(--muted)">No contracts expiring soon</p>'
+      :exp.map(function(e){
+        return '<div style="display:flex;align-items:center;justify-content:space-between;padding:7px;border-radius:8px;background:#FFFBEB;border:1px solid #FDE68A;margin-bottom:4px"><div><div style="font-size:12px;font-weight:600">'+esc(e['Full Name'])+'</div><div style="font-size:10px;color:var(--muted)">'+esc(e['Position'])+' — '+esc(e['Contract End Date'])+'</div></div><span class="bg bg-contract">Expiring</span></div>';
+      }).join('');
+  }).catch(function(e){showL(false);toast(e.message,'err');});
+}
+function sC(ic,bg,n,lb,c){return '<div class="card stat-c"><div style="display:flex;align-items:center;gap:8px"><div class="stat-ic" style="background:'+bg+'"><i class="fas '+ic+'"></i></div><div><div class="stat-n">'+n+'</div><div class="stat-l">'+lb+'</div></div></div><div class="stat-bg" style="background:'+c+'"></div></div>';}
+function qa(ic,lb,p,cls){return '<button class="btn btn-s btn-sm '+cls+'" onclick="go(\''+p+'\')"><i class="fas '+ic+'" style="color:var(--pk)"></i> '+lb+'</button>';}
+function barC(data,cols,tot){var h='',ci=0;
+  Object.entries(data).sort(function(a,b){return b[1]-a[1];}).forEach(function(e){
+    var p=tot?Math.round(e[1]/tot*100):0,c=cols[ci%cols.length]||'#C2185B';
+    h+='<div style="margin-bottom:6px"><div style="display:flex;justify-content:space-between;font-size:10px;margin-bottom:1px"><span style="font-weight:500">'+esc(e[0])+'</span><span style="font-weight:700">'+e[1]+' ('+p+'%)</span></div><div style="background:#FCE4EC;border-radius:3px;height:5px;overflow:hidden"><div class="mbar" style="width:'+p+'%;background:'+c+'"></div></div></div>';ci++;
+  });
+  return h||'<p style="font-size:10px;color:var(--muted)">No data</p>';}
+</script>
+</body>
+</html>
