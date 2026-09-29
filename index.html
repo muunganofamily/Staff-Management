@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Sign In — Muungano Family CBO</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&family=Playfair+Display:wght@700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<div id="toasts"></div>
+<div class="loader" id="loader"><div class="loader-spin"></div><span style="font-size:11px;color:var(--muted)">Signing in...</span></div>
+
+<div id="loginScreen">
+  <div class="login-card">
+    <img src="https://z-cdn-media.chatglm.cn/files/93ec7343-0dae-42fb-a42e-cae3b418bed3.png?auth_key=1884101537-882b2d02b2244c7183278cb5490f861f-0-4cf7e91147052bcc36b0381810fbdd56" alt="Logo">
+    <h2 class="fd">MUUNGANO FAMILY CBOs</h2>
+    <p class="sub">Employee &amp; Payroll Portal</p>
+
+    <div class="lg-tabs">
+      <button class="lg-tab active" id="tab-admin" onclick="switchLgTab('admin')"><i class="fas fa-user-shield"></i> Admin</button>
+      <button class="lg-tab" id="tab-staff" onclick="switchLgTab('staff')"><i class="fas fa-id-badge"></i> Staff</button>
+    </div>
+
+    <div class="lg-panel active" id="lgAdmin">
+      <div class="lg-field"><i class="fas fa-user"></i><input type="text" class="lg-input" id="lgName" placeholder="Full Name" value="Administrator"></div>
+      <div class="lg-field"><i class="fas fa-lock"></i><input type="password" class="lg-input" id="lgPass" placeholder="Password" value="admin123" onkeydown="if(event.key==='Enter')doAdminLogin()"></div>
+      <button class="lg-btn" onclick="doAdminLogin()"><i class="fas fa-sign-in-alt"></i> Sign In as Admin</button>
+      <p class="lg-hint">Default: Administrator / admin123</p>
+    </div>
+
+    <div class="lg-panel" id="lgStaff">
+      <div class="lg-field"><i class="fas fa-id-card"></i><input type="text" class="lg-input" id="lgCard" placeholder="Your Staff Card ID (e.g. MF-ID-0001)" onkeydown="if(event.key==='Enter')doStaffLogin()"></div>
+      <button class="lg-btn" onclick="doStaffLogin()"><i class="fas fa-sign-in-alt"></i> Verify &amp; Sign In</button>
+      <p class="lg-hint">Enter your Staff Card ID to access the portal</p>
+    </div>
+  </div>
+</div>
+
+<script src="assets/app.js"></script>
+<script>
+(function(){var u=getUser();if(u&&u.name)location.replace('dashboard.html');})();
+
+function switchLgTab(t){
+  document.getElementById('tab-admin').classList.toggle('active',t==='admin');
+  document.getElementById('tab-staff').classList.toggle('active',t==='staff');
+  document.getElementById('lgAdmin').classList.toggle('active',t==='admin');
+  document.getElementById('lgStaff').classList.toggle('active',t==='staff');
+}
+function doAdminLogin(){
+  var n=gv('lgName').trim(),p=gv('lgPass');
+  if(!n||!p){toast('Enter name and password','warn');return;}
+  showL(true);
+  fetch(getUrl()+'?action=loginAdmin&name='+encodeURIComponent(n)+'&pass='+encodeURIComponent(p))
+  .then(function(r){return r.json();}).then(function(d){
+    showL(false);
+    if(d.success){setUser({name:d.name,role:d.role});location.href='dashboard.html';}
+    else toast(d.error||'Login failed','err');
+  }).catch(function(e){showL(false);toast(e.message,'err');});
+}
+function doStaffLogin(){
+  var c=gv('lgCard').trim();
+  if(!c){toast('Enter your Staff Card ID','warn');return;}
+  showL(true);
+  fetch(getUrl()+'?action=loginStaff&cardId='+encodeURIComponent(c))
+  .then(function(r){return r.json();}).then(function(d){
+    showL(false);
+    if(d.success){setUser({name:d.name,role:d.role,empNumber:d.empNumber});location.href='dashboard.html';}
+    else toast(d.error||'Login failed','err');
+  }).catch(function(e){showL(false);toast(e.message,'err');});
+}
+</script>
+</body>
+</html>
